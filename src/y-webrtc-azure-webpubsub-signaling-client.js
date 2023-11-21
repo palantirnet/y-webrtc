@@ -60,7 +60,7 @@ export class AzureWebPubSubSignalingWebrtcProvider extends WebrtcProvider {
   connect () {
     this.shouldConnect = true
     this.signalingUrls.forEach(url => {
-      const signalingConn = map.setIfUndefined(signalingConns, url, () => new SignalingConn(url))
+      const signalingConn = map.setIfUndefined(signalingConns, url, () => new AzureWebPubSubSignalingConn(url))
       this.signalingConns.push(signalingConn)
       signalingConn.providers.add(this)
     })
