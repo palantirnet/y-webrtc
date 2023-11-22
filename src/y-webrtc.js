@@ -724,9 +724,7 @@ export class AzureWebPubSubSignalingConn extends SignalingConn {
       groups.forEach(group =>
         this.subscribe(group)
       )
-      rooms.forEach(room =>
-        publishSignalingMessage(this, room, { type: 'announce', from: room.peerId })
-      )
+      this.handleConnect()
     })
     this.webPubSubClient.on('disconnected', e => log(`disconnect (${this.url}): ${e.message}`))
     this.webPubSubClient.on('stopped', () => log(`stopped (${this.url})`))
