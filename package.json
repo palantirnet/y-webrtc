@@ -58,7 +58,6 @@
     ]
   },
   "dependencies": {
-    "@azure/web-pubsub-client": "^1.0.0-beta.3",
     "lib0": "^0.2.42",
     "simple-peer": "^9.11.0",
     "y-protocols": "^1.0.6"
@@ -74,10 +73,10 @@
     "rollup-plugin-terser": "^5.3.1",
     "standard": "^14.3.4",
     "typescript": "^4.4.4",
-    "yjs": "^13.6.8"
+    "yjs": "file:../prosemirror-base/node_modules/yjs"
   },
   "peerDependencies": {
-    "yjs": "^13.6.8"
+    "yjs": "file:../prosemirror-base/node_modules/yjs"
   },
   "optionalDependencies": {
     "ws": "^8.14.2"
