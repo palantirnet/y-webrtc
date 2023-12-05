@@ -20,10 +20,6 @@ import * as awarenessProtocol from 'y-protocols/awareness'
 
 import * as cryptoutils from './crypto.js'
 
-import { WebPubSubClient } from "@azure/web-pubsub-client"
-
-/** @typedef {import("@azure/web-pubsub-client").WebPubSubDataType} WebPubSubDataType */
-
 const log = logging.createModuleLogger('y-webrtc')
 
 const messageSync = 0
@@ -492,8 +488,7 @@ export class SignalingConn {
       this.client = new ws.WebsocketClient(this.url)
       this.client.on('connect', () => {
         log(`connected (${this.url})`)
-        const topics = Array.from(rooms.keys())
-        this.client.send({ type: 'subscribe', topics })
+        this.joinAllRooms()
         this.handleConnect()
       })
       this.client.on('message', m => {
@@ -595,6 +590,13 @@ export class SignalingConn {
   destroy () {
     this.client.destroy()
   }
+
+  joinAllRooms() {
+    const topics = Array.from(rooms.keys())
+    topics.forEach(topic =>
+      this.subscribe(topic)
+    )
+  }
 }
 
 /**
@@ -672,11 +674,7 @@ export class WebrtcProvider extends Observable {
 
   connect () {
     this.shouldConnect = true
-    this.signalingUrls.forEach(url => {
-      const signalingConn = map.setIfUndefined(signalingConns, url, () => new SignalingConn(url))
-      this.signalingConns.push(signalingConn)
-      signalingConn.providers.add(this)
-    })
+    this.signalingUrls.forEach(url => this.addSignalingConn(url, () => new SignalingConn(url)))
     if (this.room) {
       this.room.connect()
     }
@@ -705,74 +703,10 @@ export class WebrtcProvider extends Observable {
     })
     super.destroy()
   }
-}
 
-export class AzureWebPubSubSignalingConn extends SignalingConn {
-  constructor (url) {
-    super(url)
-    /** @private */
-    this.clientConnected = false
-  }
-
-  setupClient() {
-    /** @private */
-    this.webPubSubClient = new WebPubSubClient(this.url)
-    this.webPubSubClient.on('connected', e => {
-      this.clientConnected = true
-      log(`connected (${this.url}) with ID ${e.connectionId}`)
-      // Join all the groups.
-      const groups = Array.from(rooms.keys())
-      groups.forEach(group =>
-        this.subscribe(group)
-      )
-      this.handleConnect()
-    })
-    this.webPubSubClient.on('disconnected', e => log(`disconnect (${this.url}): ${e.message}`))
-    this.webPubSubClient.on('stopped', () => log(`stopped (${this.url})`))
-    // Set an event handler for group messages before connecting, so we don't miss any.
-    this.webPubSubClient.on('group-message', e => {
-      this.handleMessage(e.message.group, e.message.data)
-    })
-    // Connect to the signaling server.
-    this.webPubSubClient.start()
-  }
-
-  connected () {
-    return this.clientConnected
-  }
-
-  subscribe (roomName) {
-    this.webPubSubClient.joinGroup(roomName)
-  }
-
-  unsubscribe (roomName) {
-    this.webPubSubClient.leaveGroup(roomName)
-  }
-
-  publish (roomName, message) {
-    /** @type {WebPubSubDataType} */
-    let messageType = "json"
-    if (typeof message === 'string') {
-      messageType = "text"
-    }
-    this.webPubSubClient.sendToGroup(roomName, message, messageType)
-  }
-
-  destroy () {
-    this.webPubSubClient.stop()
-  }
-}
-
-export class AzureWebPubSubSignalingWebrtcProvider extends WebrtcProvider {
-  connect () {
-    this.shouldConnect = true
-    this.signalingUrls.forEach(url => {
-      const signalingConn = map.setIfUndefined(signalingConns, url, () => new AzureWebPubSubSignalingConn(url))
-      this.signalingConns.push(signalingConn)
-      signalingConn.providers.add(this)
-    })
-    if (this.room) {
-      this.room.connect()
-    }
+  addSignalingConn(url, conn) {
+    const signalingConn = map.setIfUndefined(signalingConns, url, conn)
+    this.signalingConns.push(signalingConn)
+    signalingConn.providers.add(this)
   }
 }
